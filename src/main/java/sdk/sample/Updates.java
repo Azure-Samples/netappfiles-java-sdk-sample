@@ -17,6 +17,7 @@ import com.microsoft.azure.management.netapp.v2019_11_01.implementation.VolumeIn
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class Updates
 {
@@ -25,7 +26,7 @@ public class Updates
      * @param config Project Configuration
      * @param anfClient Azure NetApp Files Management Client
      */
-    public static synchronized void runUpdateOperationsSampleAsync(ProjectConfiguration config, AzureNetAppFilesManagementClientImpl anfClient)
+    public static CompletableFuture<Void> runUpdateOperationsSampleAsync(ProjectConfiguration config, AzureNetAppFilesManagementClientImpl anfClient)
     {
         /*
           Capacity Pool Updates
@@ -40,7 +41,7 @@ public class Updates
                     config.getResourceGroup(),
                     config.getAccounts().get(0).getName(),
                     config.getAccounts().get(0).getCapacityPools().get(0).getName()
-            ).toBlocking().first();
+            ).toBlocking().single();
         }
         catch (Exception e)
         {
@@ -68,7 +69,7 @@ public class Updates
                     config.getAccounts().get(0).getName(),
                     config.getAccounts().get(0).getCapacityPools().get(0).getName(),
                     capacityPoolPatch
-            ).toBlocking().first();
+            ).toBlocking().single();
 
             Utils.writeSuccessMessage("Capacity Pool successfully updated, new size: " + Utils.getTBFromBytes(updatedCapacityPool.size()) + "TB, resource id: " + updatedCapacityPool.id());
         }
@@ -92,7 +93,7 @@ public class Updates
                     config.getAccounts().get(0).getName(),
                     config.getAccounts().get(0).getCapacityPools().get(0).getName(),
                     config.getAccounts().get(0).getCapacityPools().get(0).getVolumes().get(0).getName()
-            ).toBlocking().first();
+            ).toBlocking().single();
         }
         catch (Exception e)
         {
@@ -155,7 +156,7 @@ public class Updates
                     config.getAccounts().get(0).getCapacityPools().get(0).getName(),
                     config.getAccounts().get(0).getCapacityPools().get(0).getVolumes().get(0).getName(),
                     volumePatch
-            ).toBlocking().first();
+            ).toBlocking().single();
 
             Utils.writeSuccessMessage("Volume successfully updated, new size: " + Utils.getTBFromBytes(updatedVolume.usageThreshold()) +
                     "TB, export policy rule count: " + updatedVolume.exportPolicy().rules().size() + ", resource id: " + updatedVolume.id());
@@ -165,5 +166,7 @@ public class Updates
             Utils.writeErrorMessage("An error occurred while updating Volume " + volume.id() + "\nError message: " + e.getMessage());
             throw e;
         }
+
+        return CompletableFuture.completedFuture(null);
     }
 }

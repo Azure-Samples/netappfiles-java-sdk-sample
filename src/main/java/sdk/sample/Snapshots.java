@@ -13,6 +13,7 @@ import com.microsoft.azure.management.netapp.v2019_11_01.implementation.Snapshot
 import com.microsoft.azure.management.netapp.v2019_11_01.implementation.VolumeInner;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class Snapshots
 {
@@ -21,7 +22,7 @@ public class Snapshots
      * @param config Project Configuration
      * @param anfClient Azure NetApp Files Management Client
      */
-    public static synchronized void runSnapshotOperationsSampleAsync(ProjectConfiguration config, AzureNetAppFilesManagementClientImpl anfClient)
+    public static CompletableFuture<Void> runSnapshotOperationsSampleAsync(ProjectConfiguration config, AzureNetAppFilesManagementClientImpl anfClient)
     {
         /*
           Creating snapshot from first volume of the first capacity pool
@@ -44,7 +45,7 @@ public class Snapshots
                     config.getAccounts().get(0).getCapacityPools().get(0).getVolumes().get(0).getName(),
                     snapshotName,
                     snapshotBody
-            ).toBlocking().first();
+            ).toBlocking().single();
 
             Utils.writeSuccessMessage("Snapshot created successfully. Snapshot resource id: " + snapshot.id());
         }
@@ -69,7 +70,7 @@ public class Snapshots
                     ResourceUriUtils.getAnfAccount(snapshot.id()),
                     ResourceUriUtils.getAnfCapacityPool(snapshot.id()),
                     ResourceUriUtils.getAnfVolume(snapshot.id())
-            ).toBlocking().first();
+            ).toBlocking().single();
         }
         catch (Exception e)
         {
@@ -101,7 +102,7 @@ public class Snapshots
                     config.getAccounts().get(0).getCapacityPools().get(0).getName(),
                     newVolumeName,
                     volumeFromSnapshotBody
-            ).toBlocking().first();
+            ).toBlocking().single();
 
             Utils.writeSuccessMessage("Volume successfully created from snapshot. Volume resource id: " + newVolumeFromSnapshot.id());
         }
@@ -110,5 +111,7 @@ public class Snapshots
             Utils.writeErrorMessage("An error occurred while creating a volume " + newVolumeName + " from snapshot " + snapshot.id() + ".\nError message: " + e.getMessage());
             throw e;
         }
+
+        return CompletableFuture.completedFuture(null);
     }
 }

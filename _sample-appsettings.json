@@ -5,17 +5,17 @@
   },
   "accounts": [
     {
-      "name": "JohnDoe-Test-Account",
+      "name": "Anf-Test-Account",
       "location": "westcentralus",
       "capacityPools": [
         {
-          "name": "JohnDoe-Test-Pool",
+          "name": "Anf-Test-Pool",
           "serviceLevel": "Standard",
           "size": 4398046511104,
           "volumes": [
             {
-              "name": "JohnDoe-Test-Volume",
-              "creationToken": "JohnDoe-Test-Volume",
+              "name": "Anf-Test-Volume",
+              "creationToken": "Anf-Test-Volume",
               "usageThreshold": 107374182400,
               "type": "NFSv3",
               "subnetId": "<subnetId>",

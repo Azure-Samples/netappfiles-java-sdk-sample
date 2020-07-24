@@ -5,11 +5,16 @@
 
 package sdk.sample;
 
+import com.ea.async.Async;
 import sdk.sample.common.ProjectConfiguration;
 import sdk.sample.common.ServiceCredentialsAuth;
 import sdk.sample.common.Utils;
 import com.microsoft.azure.management.netapp.v2019_11_01.implementation.AzureNetAppFilesManagementClientImpl;
 import com.microsoft.rest.credentials.ServiceClientCredentials;
+
+import java.util.concurrent.CompletableFuture;
+
+import static com.ea.async.Async.await;
 
 public class main
 {
@@ -23,6 +28,7 @@ public class main
 
         try
         {
+            Async.init();
             runAsync();
             Utils.writeConsoleMessage("Sample application successfully completed execution");
         }
@@ -31,23 +37,24 @@ public class main
             Utils.writeErrorMessage(e.getMessage());
         }
 
+        // Note: this should not be here in a proper environment. I leave it here for a more compact sample that does what it needs to do and exits as soon as it finishes without waiting for other threads
         System.exit(0);
     }
 
-    private static synchronized void runAsync()
+    private static CompletableFuture<Void> runAsync()
     {
         // Getting project configuration
         ProjectConfiguration config = Utils.getConfiguration("appsettings.json");
         if (config == null)
         {
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
         // Authenticating using service principal, refer to README.md file for requirement details
-        ServiceClientCredentials credentials = ServiceCredentialsAuth.getServicePrincipalCredentials(System.getenv("AZURE_AUTH_LOCATION"));
+        ServiceClientCredentials credentials = await(ServiceCredentialsAuth.getServicePrincipalCredentials(System.getenv("AZURE_AUTH_LOCATION")));
         if (credentials == null)
         {
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
         // Instantiating a new ANF management client
@@ -57,18 +64,21 @@ public class main
         Utils.writeConsoleMessage("Api Version: " + anfClient.apiVersion());
 
         // Creating ANF resources (Account, Pool, Volumes)
-        Creation.runCreationSampleAsync(config, anfClient);
+        await(Creation.runCreationSampleAsync(config, anfClient));
 
         // Creating and restoring snapshots
-        Snapshots.runSnapshotOperationsSampleAsync(config, anfClient);
+        await(Snapshots.runSnapshotOperationsSampleAsync(config, anfClient));
 
         // Performing updates on Capacity Pools and Volumes
-        Updates.runUpdateOperationsSampleAsync(config, anfClient);
+        await(Updates.runUpdateOperationsSampleAsync(config, anfClient));
 
-        // WARNING: Destructive operations at this point. You can uncomment these lines to clean up all resources created in this example.
+        // WARNING: Destructive operations at this point. You can uncomment relevant lines to clean up all resources created in this example.
         // Deletion operations (snapshots, volumes, capacity pools and accounts)
-//        Utils.writeConsoleMessage("Waiting for 200 seconds to let the snapshot used to create a new volume complete the split operation. Also to make sure the volume created from the snapshot is ready...");
+        // We sleep for 200 seconds to make sure the snapshot that was used to create a new volume has completed the split operation, and also to make sure the new volume is ready.
+//        Utils.writeConsoleMessage("Waiting 200 seconds for volume clone operation to complete...");
 //        Utils.threadSleep(200000);
-//        Cleanup.runCleanupTasksSampleAsync(config, anfClient);
+//        await(Cleanup.runCleanupTasksSampleAsync(config, anfClient));
+
+        return CompletableFuture.completedFuture(null);
     }
 }

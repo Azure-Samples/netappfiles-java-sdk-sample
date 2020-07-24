@@ -10,6 +10,7 @@ import com.microsoft.rest.credentials.ServiceClientCredentials;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 
 public class ServiceCredentialsAuth
 {
@@ -18,19 +19,19 @@ public class ServiceCredentialsAuth
      * @param authEnvironmentVariable Environment variable that points to the file system secured azure auth settings
      * @return The service client credentials
      */
-    public static synchronized ServiceClientCredentials getServicePrincipalCredentials(String authEnvironmentVariable)
+    public static CompletableFuture<ServiceClientCredentials> getServicePrincipalCredentials(String authEnvironmentVariable)
     {
         if (authEnvironmentVariable == null)
         {
             Utils.writeWarningMessage("Environment variable AZURE_AUTH_LOCATION does not exist. Exiting");
-            return null;
+            return CompletableFuture.completedFuture(null);
         }
 
         File file = new File(authEnvironmentVariable);
         if (!file.exists())
         {
             Utils.writeWarningMessage("Could not find azure auth file at " + authEnvironmentVariable + " to authenticate. Exiting");
-            return null;
+            return CompletableFuture.completedFuture(null);
         }
 
         ApplicationTokenCredentials credentials;
@@ -42,9 +43,9 @@ public class ServiceCredentialsAuth
         {
             Utils.writeWarningMessage("Unable to create credentials from auth file\n");
             Utils.writeConsoleMessage(e.getMessage());
-            return null;
+            return CompletableFuture.completedFuture(null);
         }
 
-        return credentials;
+        return CompletableFuture.completedFuture(credentials);
     }
 }
