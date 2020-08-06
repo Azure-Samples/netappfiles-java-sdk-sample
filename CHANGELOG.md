@@ -1,13 +1,13 @@
-## [project-title] Changelog
+## Azure NetAppFiles SDK Sample for Java Changelog
 
-<a name="x.y.z"></a>
-# x.y.z (yyyy-mm-dd)
+* [1.0.0 (2020-07-24)](#1.0.0 (2020-07-24))
 
+# 1.0.0 (2020-07-24)
 *Features*
-* ...
+* Initial commit
 
 *Bug Fixes*
-* ...
+* N/A
 
 *Breaking Changes*
-* ...
+* N/A

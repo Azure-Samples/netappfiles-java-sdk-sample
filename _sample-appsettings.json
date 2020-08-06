@@ -1,0 +1,39 @@
+{
+  "general": {
+    "subscriptionId": "<subscriptionId>",
+    "resourceGroup": "<resourceGroupName>"
+  },
+  "accounts": [
+    {
+      "name": "Anf-Test-Account",
+      "location": "westcentralus",
+      "capacityPools": [
+        {
+          "name": "Anf-Test-Pool",
+          "serviceLevel": "Standard",
+          "size": 4398046511104,
+          "volumes": [
+            {
+              "name": "Anf-Test-Volume",
+              "creationToken": "Anf-Test-Volume",
+              "usageThreshold": 107374182400,
+              "type": "NFSv3",
+              "subnetId": "<subnetId>",
+              "exportPolicies": [
+                {
+                  "ruleIndex": 1,
+                  "allowedClients": "0.0.0.0/0",
+                  "cifs": false,
+                  "nfsv3": true,
+                  "nfsv41": false,
+                  "unixReadOnly": false,
+                  "unixReadWrite": true
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
