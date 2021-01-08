@@ -11,7 +11,7 @@ description: "This project demonstrates how to use a to perform management CRUD 
 # Azure NetApp Files SDK for Java
 
 This project demonstrates how to use a Java sample application to perform CRUD management operations for the Microsoft.NetApp
-resource provider.
+resource provider. 
 
 In this sample application we perform the following operations:
 
