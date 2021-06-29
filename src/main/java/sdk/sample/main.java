@@ -5,16 +5,14 @@
 
 package sdk.sample;
 
+import com.azure.core.credential.TokenCredential;
+import com.azure.core.management.AzureEnvironment;
+import com.azure.core.management.profile.AzureProfile;
+import com.azure.identity.DefaultAzureCredentialBuilder;
+import com.azure.resourcemanager.netapp.NetAppFilesManager;
 import com.ea.async.Async;
 import sdk.sample.common.ProjectConfiguration;
-import sdk.sample.common.ServiceCredentialsAuth;
 import sdk.sample.common.Utils;
-import com.microsoft.azure.management.netapp.v2019_11_01.implementation.AzureNetAppFilesManagementClientImpl;
-import com.microsoft.rest.credentials.ServiceClientCredentials;
-
-import java.util.concurrent.CompletableFuture;
-
-import static com.ea.async.Async.await;
 
 public class main
 {
@@ -41,44 +39,36 @@ public class main
         System.exit(0);
     }
 
-    private static CompletableFuture<Void> runAsync()
+    private static void runAsync()
     {
         // Getting project configuration
         ProjectConfiguration config = Utils.getConfiguration("appsettings.json");
         if (config == null)
-        {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        // Authenticating using service principal, refer to README.md file for requirement details
-        ServiceClientCredentials credentials = await(ServiceCredentialsAuth.getServicePrincipalCredentials(System.getenv("AZURE_AUTH_LOCATION")));
-        if (credentials == null)
-        {
-            return CompletableFuture.completedFuture(null);
-        }
+            return;
 
         // Instantiating a new ANF management client
+        AzureProfile profile = new AzureProfile(AzureEnvironment.AZURE);
+        TokenCredential credential = new DefaultAzureCredentialBuilder()
+                .authorityHost(profile.getEnvironment().getActiveDirectoryEndpoint())
+                .build();
         Utils.writeConsoleMessage("Instantiating a new Azure NetApp Files management client...");
-        AzureNetAppFilesManagementClientImpl anfClient = new AzureNetAppFilesManagementClientImpl(credentials);
-        anfClient.withSubscriptionId(config.getSubscriptionId());
-        Utils.writeConsoleMessage("Api Version: " + anfClient.apiVersion());
+        NetAppFilesManager manager = NetAppFilesManager
+                .authenticate(credential, profile);
 
         // Creating ANF resources (Account, Pool, Volumes)
-        await(Creation.runCreationSampleAsync(config, anfClient));
+        Creation.runCreationSample(config, manager.serviceClient());
 
         // Creating and restoring snapshots
-        await(Snapshots.runSnapshotOperationsSampleAsync(config, anfClient));
+        Snapshots.runSnapshotOperationsSample(config, manager.serviceClient());
 
         // Performing updates on Capacity Pools and Volumes
-        await(Updates.runUpdateOperationsSampleAsync(config, anfClient));
+        Updates.runUpdateOperationsSample(config, manager.serviceClient());
 
         // WARNING: Destructive operations at this point. You can uncomment relevant lines to clean up all resources created in this example.
         // Deletion operations (snapshots, volumes, capacity pools and accounts)
         // We sleep for 200 seconds to make sure the snapshot that was used to create a new volume has completed the split operation, and also to make sure the new volume is ready.
-//        Utils.writeConsoleMessage("Waiting 200 seconds for volume clone operation to complete...");
-//        Utils.threadSleep(200000);
-//        await(Cleanup.runCleanupTasksSampleAsync(config, anfClient));
-
-        return CompletableFuture.completedFuture(null);
+        //Utils.writeConsoleMessage("Waiting 200 seconds for volume clone operation to complete...");
+        //Utils.threadSleep(200000);
+        Cleanup.runCleanupTasksSample(config, manager.serviceClient());
     }
 }

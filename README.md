@@ -67,16 +67,21 @@ If you don't already have a Microsoft Azure subscription, you can get a FREE tri
        >Note: This command will automatically assign RBAC contributor role to the service principal at subscription level.
        You can narrow down the scope to the specific resource group where your tests will create the resources.
 
-    1. Copy the output contents and paste it in a file called azureauth.json, and secure it with file system permissions.
-    1. Set an environment variable pointing to the file path you just created. Here is an example with Powershell and bash:
+    1. Set the following environment variables from the output of the creation:
         
         Powershell
         ```powershell
-        [Environment]::SetEnvironmentVariable("AZURE_AUTH_LOCATION", "C:\sdksample\azureauth.json", "User")
+        $env:AZURE_SUBSCRIPTION_ID = <subscriptionId>
+        $env:AZURE_CLIENT_ID = <clientId>
+        $env:AZURE_CLIENT_SECRET = <clientSecret>
+        $env:AZURE_TENANT_ID = <tenantId>
         ```
         Bash
         ```bash
-        export AZURE_AUTH_LOCATION=/sdksamples/azureauth.json
+        export AZURE_SUBSCRIPTION_ID=<subscriptionId>
+        export AZURE_CLIENT_ID=<clientId>
+        export AZURE_CLIENT_SECRET=<clientSecret>
+        export AZURE_TENANT_ID=<tenantId>
         ```
     
 ## What does netappfiles-java-sdk-sample do?

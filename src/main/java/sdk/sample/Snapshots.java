@@ -5,15 +5,14 @@
 
 package sdk.sample;
 
+import com.azure.resourcemanager.netapp.fluent.NetAppManagementClient;
+import com.azure.resourcemanager.netapp.fluent.models.SnapshotInner;
+import com.azure.resourcemanager.netapp.fluent.models.VolumeInner;
 import sdk.sample.common.ProjectConfiguration;
 import sdk.sample.common.ResourceUriUtils;
 import sdk.sample.common.Utils;
-import com.microsoft.azure.management.netapp.v2019_11_01.implementation.AzureNetAppFilesManagementClientImpl;
-import com.microsoft.azure.management.netapp.v2019_11_01.implementation.SnapshotInner;
-import com.microsoft.azure.management.netapp.v2019_11_01.implementation.VolumeInner;
 
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 public class Snapshots
 {
@@ -22,7 +21,7 @@ public class Snapshots
      * @param config Project Configuration
      * @param anfClient Azure NetApp Files Management Client
      */
-    public static CompletableFuture<Void> runSnapshotOperationsSampleAsync(ProjectConfiguration config, AzureNetAppFilesManagementClientImpl anfClient)
+    public static void runSnapshotOperationsSample(ProjectConfiguration config, NetAppManagementClient anfClient)
     {
         /*
           Creating snapshot from first volume of the first capacity pool
@@ -38,14 +37,13 @@ public class Snapshots
         SnapshotInner snapshot;
         try
         {
-            snapshot = anfClient.snapshots().createAsync(
+            snapshot = anfClient.getSnapshots().beginCreate(
                     config.getResourceGroup(),
                     config.getAccounts().get(0).getName(),
                     config.getAccounts().get(0).getCapacityPools().get(0).getName(),
                     config.getAccounts().get(0).getCapacityPools().get(0).getVolumes().get(0).getName(),
                     snapshotName,
-                    snapshotBody
-            ).toBlocking().single();
+                    snapshotBody).getFinalResult();
 
             Utils.writeSuccessMessage("Snapshot created successfully. Snapshot resource id: " + snapshot.id());
         }
@@ -65,12 +63,11 @@ public class Snapshots
         VolumeInner snapshotVolume;
         try
         {
-            snapshotVolume = anfClient.volumes().getAsync(
+            snapshotVolume = anfClient.getVolumes().get(
                     ResourceUriUtils.getResourceGroup(snapshot.id()),
                     ResourceUriUtils.getAnfAccount(snapshot.id()),
                     ResourceUriUtils.getAnfCapacityPool(snapshot.id()),
-                    ResourceUriUtils.getAnfVolume(snapshot.id())
-            ).toBlocking().single();
+                    ResourceUriUtils.getAnfVolume(snapshot.id()));
         }
         catch (Exception e)
         {
@@ -86,23 +83,22 @@ public class Snapshots
               Notice that SnapshotId is not the actual resource Id of the snapshot, this value is the unique identifier
               (guid) of the snapshot, represented by the SnapshotId instead.
              */
-            VolumeInner volumeFromSnapshotBody = new VolumeInner();
-            volumeFromSnapshotBody.withSnapshotId(snapshot.snapshotId());
-            volumeFromSnapshotBody.withExportPolicy(snapshotVolume.exportPolicy());
-            volumeFromSnapshotBody.withLocation(snapshotVolume.location());
-            volumeFromSnapshotBody.withProtocolTypes(snapshotVolume.protocolTypes());
-            volumeFromSnapshotBody.withServiceLevel(snapshotVolume.serviceLevel());
-            volumeFromSnapshotBody.withUsageThreshold(snapshotVolume.usageThreshold());
-            volumeFromSnapshotBody.withSubnetId(snapshotVolume.subnetId());
-            volumeFromSnapshotBody.withCreationToken(newVolumeName);
+            VolumeInner volumeFromSnapshotBody = new VolumeInner()
+                    .withSnapshotId(snapshot.snapshotId())
+                    //.withExportPolicy(snapshotVolume.exportPolicy())
+                    .withLocation(snapshotVolume.location())
+                    .withProtocolTypes(snapshotVolume.protocolTypes())
+                    .withServiceLevel(snapshotVolume.serviceLevel())
+                    .withUsageThreshold(snapshotVolume.usageThreshold())
+                    .withSubnetId(snapshotVolume.subnetId())
+                    .withCreationToken(newVolumeName);
 
-            newVolumeFromSnapshot = anfClient.volumes().createOrUpdateAsync(
+            newVolumeFromSnapshot = anfClient.getVolumes().beginCreateOrUpdate(
                     config.getResourceGroup(),
                     config.getAccounts().get(0).getName(),
                     config.getAccounts().get(0).getCapacityPools().get(0).getName(),
                     newVolumeName,
-                    volumeFromSnapshotBody
-            ).toBlocking().single();
+                    volumeFromSnapshotBody).getFinalResult();
 
             Utils.writeSuccessMessage("Volume successfully created from snapshot. Volume resource id: " + newVolumeFromSnapshot.id());
         }
@@ -111,7 +107,5 @@ public class Snapshots
             Utils.writeErrorMessage("An error occurred while creating a volume " + newVolumeName + " from snapshot " + snapshot.id() + ".\nError message: " + e.getMessage());
             throw e;
         }
-
-        return CompletableFuture.completedFuture(null);
     }
 }
