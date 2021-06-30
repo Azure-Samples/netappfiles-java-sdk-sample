@@ -11,7 +11,11 @@ import com.azure.resourcemanager.netapp.fluent.models.VolumeInner;
 import sdk.sample.common.ProjectConfiguration;
 import sdk.sample.common.ResourceUriUtils;
 import sdk.sample.common.Utils;
+import sdk.sample.model.ModelCapacityPool;
+import sdk.sample.model.ModelNetAppAccount;
+import sdk.sample.model.ModelVolume;
 
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 public class Snapshots
@@ -37,11 +41,14 @@ public class Snapshots
         SnapshotInner snapshot;
         try
         {
+            ModelNetAppAccount account = config.getAccounts().stream().findFirst().orElseThrow();
+            ModelCapacityPool pool = account.getCapacityPools().stream().findFirst().orElseThrow();
+            ModelVolume volume = pool.getVolumes().stream().findFirst().orElseThrow();
             snapshot = anfClient.getSnapshots().beginCreate(
                     config.getResourceGroup(),
-                    config.getAccounts().get(0).getName(),
-                    config.getAccounts().get(0).getCapacityPools().get(0).getName(),
-                    config.getAccounts().get(0).getCapacityPools().get(0).getVolumes().get(0).getName(),
+                    account.getName(),
+                    pool.getName(),
+                    volume.getName(),
                     snapshotName,
                     snapshotBody).getFinalResult();
 
@@ -49,8 +56,11 @@ public class Snapshots
         }
         catch (Exception e)
         {
-            Utils.writeErrorMessage("An error occurred while creating a snapshot of volume " +
-                    config.getAccounts().get(0).getCapacityPools().get(0).getVolumes().get(0).getName() + ".\nError message: " + e.getMessage());
+            if (e instanceof NoSuchElementException)
+                Utils.writeErrorMessage("An error occurred while creating a snapshot, element missing in config file");
+            else
+                Utils.writeErrorMessage("An error occurred while creating a snapshot of volume " +
+                        config.getAccounts().get(0).getCapacityPools().get(0).getVolumes().get(0).getName() + ".\nError message: " + e.getMessage());
             throw e;
         }
 
@@ -93,10 +103,12 @@ public class Snapshots
                     .withSubnetId(snapshotVolume.subnetId())
                     .withCreationToken(newVolumeName);
 
+            ModelNetAppAccount account = config.getAccounts().stream().findFirst().orElseThrow();
+            ModelCapacityPool pool = account.getCapacityPools().stream().findFirst().orElseThrow();
             newVolumeFromSnapshot = anfClient.getVolumes().beginCreateOrUpdate(
                     config.getResourceGroup(),
-                    config.getAccounts().get(0).getName(),
-                    config.getAccounts().get(0).getCapacityPools().get(0).getName(),
+                    account.getName(),
+                    pool.getName(),
                     newVolumeName,
                     volumeFromSnapshotBody).getFinalResult();
 

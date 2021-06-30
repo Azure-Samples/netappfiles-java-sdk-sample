@@ -5,7 +5,6 @@
 
 package sdk.sample;
 
-import com.azure.resourcemanager.netapp.NetAppFilesManager;
 import com.azure.resourcemanager.netapp.fluent.NetAppManagementClient;
 import com.azure.resourcemanager.netapp.fluent.models.CapacityPoolInner;
 import com.azure.resourcemanager.netapp.fluent.models.NetAppAccountInner;
