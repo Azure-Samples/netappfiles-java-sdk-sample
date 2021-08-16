@@ -5,21 +5,16 @@
 
 package sdk.sample;
 
-import rx.Observable;
+import com.azure.resourcemanager.netapp.fluent.NetAppManagementClient;
+import com.azure.resourcemanager.netapp.fluent.models.CapacityPoolInner;
+import com.azure.resourcemanager.netapp.fluent.models.NetAppAccountInner;
+import com.azure.resourcemanager.netapp.fluent.models.VolumeInner;
 import sdk.sample.common.CommonSdk;
 import sdk.sample.common.ProjectConfiguration;
 import sdk.sample.common.Utils;
 import sdk.sample.model.ModelCapacityPool;
 import sdk.sample.model.ModelNetAppAccount;
 import sdk.sample.model.ModelVolume;
-import com.microsoft.azure.management.netapp.v2019_11_01.implementation.AzureNetAppFilesManagementClientImpl;
-import com.microsoft.azure.management.netapp.v2019_11_01.implementation.CapacityPoolInner;
-import com.microsoft.azure.management.netapp.v2019_11_01.implementation.NetAppAccountInner;
-import com.microsoft.azure.management.netapp.v2019_11_01.implementation.VolumeInner;
-
-import java.util.concurrent.CompletableFuture;
-
-import static com.ea.async.Async.await;
 
 public class Creation
 {
@@ -28,7 +23,7 @@ public class Creation
      * @param config Project Configuration
      * @param anfClient Azure NetApp Files Management Client
      */
-    public static CompletableFuture<Void> runCreationSampleAsync(ProjectConfiguration config, AzureNetAppFilesManagementClientImpl anfClient)
+    public static void runCreationSample(ProjectConfiguration config, NetAppManagementClient anfClient)
     {
         /*
           Creating ANF Accounts
@@ -36,12 +31,11 @@ public class Creation
         Utils.writeConsoleMessage("Creating Azure NetApp Files Account(s)...");
         if (!config.getAccounts().isEmpty())
         {
-            config.getAccounts().forEach(account -> await(createOrRetrieveAccountAsync(anfClient, config.getResourceGroup(), account)));
+            config.getAccounts().forEach(account -> createAccount(anfClient, config.getResourceGroup(), account));
         }
         else
         {
             Utils.writeConsoleMessage("No ANF accounts defined within appsettings.json file. Exiting.");
-            return CompletableFuture.completedFuture(null);
         }
 
         /*
@@ -52,12 +46,11 @@ public class Creation
         {
             if (!modelAccount.getCapacityPools().isEmpty())
             {
-                modelAccount.getCapacityPools().forEach(pool -> await(createOrRetrieveCapacityPoolAsync(anfClient, config.getResourceGroup(), modelAccount, pool)));
+                modelAccount.getCapacityPools().forEach(pool -> createCapacityPool(anfClient, config.getResourceGroup(), modelAccount, pool));
             }
             else
             {
                 Utils.writeConsoleMessage("No capacity pool defined for account " + modelAccount.getName());
-                return CompletableFuture.completedFuture(null);
             }
         }
 
@@ -78,7 +71,7 @@ public class Creation
                         {
                             try
                             {
-                                Void result = await(createOrRetrieveVolumeAsync(anfClient, config.getResourceGroup(), modelAccount, capacityPool, modelVolume));
+                                createVolume(anfClient, config.getResourceGroup(), modelAccount, capacityPool, modelVolume);
                             }
                             catch (Exception e)
                             {
@@ -95,8 +88,6 @@ public class Creation
                 }
             }
         }
-
-        return CompletableFuture.completedFuture(null);
     }
 
     /**
@@ -107,24 +98,20 @@ public class Creation
      * @param pool ModelCapacityPool object that describes the Capacity Pool, populated with data from appsettings.json
      * @param volume ModelVolume object that describes the Volume to be created, populated with data from appsettings.json
      */
-    private static CompletableFuture<Void> createOrRetrieveVolumeAsync(AzureNetAppFilesManagementClientImpl anfClient, String resourceGroup, ModelNetAppAccount account, ModelCapacityPool pool, ModelVolume volume)
+    private static void createVolume(NetAppManagementClient anfClient, String resourceGroup, ModelNetAppAccount account, ModelCapacityPool pool, ModelVolume volume)
     {
         String[] params = {resourceGroup, account.getName(), pool.getName(), volume.getName()};
 
-        Observable<VolumeInner> anfVolume = await(CommonSdk.getResourceAsync(anfClient, params, VolumeInner.class));
-        anfVolume.subscribe(volumeInner -> {
-            if (volumeInner == null)
-            {
-                Observable<VolumeInner> newVolume = await(CommonSdk.createOrUpdateVolumeAsync(anfClient, resourceGroup, account, pool, volume));
-                Utils.writeSuccessMessage("Volume successfully created, resource id: " + newVolume.toBlocking().first().id());
-            }
-            else
-            {
-                Utils.writeConsoleMessage("Volume already exists, resource id: " + volumeInner.id());
-            }
-        });
-
-        return CompletableFuture.completedFuture(null);
+        VolumeInner anfVolume = (VolumeInner) CommonSdk.getResource(anfClient, params, VolumeInner.class);
+        if (anfVolume == null)
+        {
+            VolumeInner newVolume = CommonSdk.createOrUpdateVolume(anfClient, resourceGroup, account, pool, volume);
+            Utils.writeSuccessMessage("Volume successfully created, resource id: " + newVolume.id());
+        }
+        else
+        {
+            Utils.writeConsoleMessage("Volume already exists, resource id: " + anfVolume.id());
+        }
     }
 
     /**
@@ -134,24 +121,20 @@ public class Creation
      * @param account ModelNetAppAccount object that describes the ANF Account, populated with data from appsettings.json
      * @param pool ModelCapacityPool object that describes the Capacity Pool to be created, populated with data from appsettings.json
      */
-    private static CompletableFuture<Void> createOrRetrieveCapacityPoolAsync(AzureNetAppFilesManagementClientImpl anfClient, String resourceGroup, ModelNetAppAccount account, ModelCapacityPool pool)
+    private static void createCapacityPool(NetAppManagementClient anfClient, String resourceGroup, ModelNetAppAccount account, ModelCapacityPool pool)
     {
         String[] params = {resourceGroup, account.getName(), pool.getName()};
 
-        Observable<CapacityPoolInner> capacityPool = await(CommonSdk.getResourceAsync(anfClient, params, CapacityPoolInner.class));
-        capacityPool.subscribe(capacityPoolInner -> {
-            if (capacityPoolInner == null)
-            {
-                Observable<CapacityPoolInner> newCapacityPool = await(CommonSdk.createOrUpdateCapacityPoolAsync(anfClient, resourceGroup, account.getName(), account.getLocation(), pool));
-                Utils.writeSuccessMessage("Capacity Pool successfully created, resource id: " + newCapacityPool.toBlocking().first().id());
-            }
-            else
-            {
-                Utils.writeConsoleMessage("Capacity Pool already exists, resource id: " + capacityPoolInner.id());
-            }
-        });
-
-        return CompletableFuture.completedFuture(null);
+        CapacityPoolInner capacityPool = (CapacityPoolInner) CommonSdk.getResource(anfClient, params, CapacityPoolInner.class);
+        if (capacityPool == null)
+        {
+            CapacityPoolInner newCapacityPool = CommonSdk.createOrUpdateCapacityPool(anfClient, resourceGroup, account.getName(), account.getLocation(), pool);
+            Utils.writeSuccessMessage("Capacity Pool successfully created, resource id: " + newCapacityPool.id());
+        }
+        else
+        {
+            Utils.writeConsoleMessage("Capacity Pool already exists, resource id: " + capacityPool.id());
+        }
     }
 
     /**
@@ -160,23 +143,19 @@ public class Creation
      * @param resourceGroup Resource Group name where the ANF Account will be created
      * @param account ModelNetAppAccount object that describes the ANF Account to be created, populated with data from appsettings.json
      */
-    private static CompletableFuture<Void> createOrRetrieveAccountAsync(AzureNetAppFilesManagementClientImpl anfClient, String resourceGroup, ModelNetAppAccount account)
+    private static void createAccount(NetAppManagementClient anfClient, String resourceGroup, ModelNetAppAccount account)
     {
         String[] params = {resourceGroup, account.getName()};
 
-        Observable<NetAppAccountInner> anfAccount = await(CommonSdk.getResourceAsync(anfClient, params, NetAppAccountInner.class));
-        anfAccount.subscribe(netAppAccountInner -> {
-            if (netAppAccountInner == null)
-            {
-                Observable<NetAppAccountInner> newAccount = await(CommonSdk.createOrUpdateAccountAsync(anfClient, resourceGroup, account));
-                Utils.writeSuccessMessage("Account successfully created, resource id: " + newAccount.toBlocking().first().id());
-            }
-            else
-            {
-                Utils.writeConsoleMessage("Account already exists, resource id: " + netAppAccountInner.id());
-            }
-        });
-
-        return CompletableFuture.completedFuture(null);
+        NetAppAccountInner anfAccount = (NetAppAccountInner) CommonSdk.getResource(anfClient, params, NetAppAccountInner.class);
+        if (anfAccount == null)
+        {
+            NetAppAccountInner newAccount = CommonSdk.createOrUpdateAccount(anfClient, resourceGroup, account);
+            Utils.writeSuccessMessage("Account successfully created, resource id: " + newAccount.id());
+        }
+        else
+        {
+            Utils.writeConsoleMessage("Account already exists, resource id: " + anfAccount.id());
+        }
     }
 }

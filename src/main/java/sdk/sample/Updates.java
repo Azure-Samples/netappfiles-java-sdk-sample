@@ -5,19 +5,22 @@
 
 package sdk.sample;
 
+import com.azure.resourcemanager.netapp.fluent.NetAppManagementClient;
+import com.azure.resourcemanager.netapp.fluent.models.CapacityPoolInner;
+import com.azure.resourcemanager.netapp.fluent.models.VolumeInner;
+import com.azure.resourcemanager.netapp.models.CapacityPoolPatch;
+import com.azure.resourcemanager.netapp.models.ExportPolicyRule;
+import com.azure.resourcemanager.netapp.models.VolumePatch;
+import com.azure.resourcemanager.netapp.models.VolumePatchPropertiesExportPolicy;
 import sdk.sample.common.ProjectConfiguration;
 import sdk.sample.common.Utils;
-import com.microsoft.azure.management.netapp.v2019_11_01.CapacityPoolPatch;
-import com.microsoft.azure.management.netapp.v2019_11_01.ExportPolicyRule;
-import com.microsoft.azure.management.netapp.v2019_11_01.VolumePatch;
-import com.microsoft.azure.management.netapp.v2019_11_01.VolumePatchPropertiesExportPolicy;
-import com.microsoft.azure.management.netapp.v2019_11_01.implementation.AzureNetAppFilesManagementClientImpl;
-import com.microsoft.azure.management.netapp.v2019_11_01.implementation.CapacityPoolInner;
-import com.microsoft.azure.management.netapp.v2019_11_01.implementation.VolumeInner;
+import sdk.sample.model.ModelCapacityPool;
+import sdk.sample.model.ModelNetAppAccount;
+import sdk.sample.model.ModelVolume;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.NoSuchElementException;
 
 public class Updates
 {
@@ -26,7 +29,7 @@ public class Updates
      * @param config Project Configuration
      * @param anfClient Azure NetApp Files Management Client
      */
-    public static CompletableFuture<Void> runUpdateOperationsSampleAsync(ProjectConfiguration config, AzureNetAppFilesManagementClientImpl anfClient)
+    public static void runUpdateOperationsSample(ProjectConfiguration config, NetAppManagementClient anfClient)
     {
         /*
           Capacity Pool Updates
@@ -37,16 +40,20 @@ public class Updates
         CapacityPoolInner capacityPool;
         try
         {
-            capacityPool = anfClient.pools().getAsync(
+            ModelNetAppAccount account = config.getAccounts().stream().findFirst().orElseThrow();
+            ModelCapacityPool pool = account.getCapacityPools().stream().findFirst().orElseThrow();
+            capacityPool = anfClient.getPools().get(
                     config.getResourceGroup(),
-                    config.getAccounts().get(0).getName(),
-                    config.getAccounts().get(0).getCapacityPools().get(0).getName()
-            ).toBlocking().single();
+                    account.getName(),
+                    pool.getName());
         }
         catch (Exception e)
         {
-            Utils.writeErrorMessage("An error occurred while getting current Capacity Pool information " +
-                    config.getAccounts().get(0).getCapacityPools().get(0).getName() + "\nError message: " + e.getMessage());
+            if (e instanceof NoSuchElementException)
+                Utils.writeErrorMessage("An error occurred while creating a snapshot, element missing in config file");
+            else
+                Utils.writeErrorMessage("An error occurred while getting current Capacity Pool information " +
+                        config.getAccounts().get(0).getCapacityPools().get(0).getName() + "\nError message: " + e.getMessage());
             throw e;
         }
 
@@ -64,12 +71,13 @@ public class Updates
         // Update Capacity Pool resource
         try
         {
-            CapacityPoolInner updatedCapacityPool = anfClient.pools().updateAsync(
+            ModelNetAppAccount account = config.getAccounts().stream().findFirst().orElseThrow();
+            ModelCapacityPool pool = account.getCapacityPools().stream().findFirst().orElseThrow();
+            CapacityPoolInner updatedCapacityPool = anfClient.getPools().beginUpdate(
                     config.getResourceGroup(),
-                    config.getAccounts().get(0).getName(),
-                    config.getAccounts().get(0).getCapacityPools().get(0).getName(),
-                    capacityPoolPatch
-            ).toBlocking().single();
+                    account.getName(),
+                    pool.getName(),
+                    capacityPoolPatch).getFinalResult();
 
             Utils.writeSuccessMessage("Capacity Pool successfully updated, new size: " + Utils.getTBFromBytes(updatedCapacityPool.size()) + "TB, resource id: " + updatedCapacityPool.id());
         }
@@ -88,17 +96,22 @@ public class Updates
         VolumeInner volume;
         try
         {
-            volume = anfClient.volumes().getAsync(
+            ModelNetAppAccount account = config.getAccounts().stream().findFirst().orElseThrow();
+            ModelCapacityPool pool = account.getCapacityPools().stream().findFirst().orElseThrow();
+            ModelVolume modelVolume = pool.getVolumes().stream().findFirst().orElseThrow();
+            volume = anfClient.getVolumes().get(
                     config.getResourceGroup(),
-                    config.getAccounts().get(0).getName(),
-                    config.getAccounts().get(0).getCapacityPools().get(0).getName(),
-                    config.getAccounts().get(0).getCapacityPools().get(0).getVolumes().get(0).getName()
-            ).toBlocking().single();
+                    account.getName(),
+                    pool.getName(),
+                    modelVolume.getName());
         }
         catch (Exception e)
         {
-            Utils.writeErrorMessage("An error occurred while getting current Volume information " +
-                    config.getAccounts().get(0).getCapacityPools().get(0).getVolumes().get(0).getName() + "\nError message: " + e.getMessage());
+            if (e instanceof NoSuchElementException)
+                Utils.writeErrorMessage("An error occurred while creating a snapshot, element missing in config file");
+            else
+                Utils.writeErrorMessage("An error occurred while getting current Volume information " +
+                        config.getAccounts().get(0).getCapacityPools().get(0).getVolumes().get(0).getName() + "\nError message: " + e.getMessage());
             throw e;
         }
 
@@ -150,13 +163,15 @@ public class Updates
         // Update size at volume resource
         try
         {
-            VolumeInner updatedVolume = anfClient.volumes().updateAsync(
+            ModelNetAppAccount account = config.getAccounts().stream().findFirst().orElseThrow();
+            ModelCapacityPool pool = account.getCapacityPools().stream().findFirst().orElseThrow();
+            ModelVolume modelVolume = pool.getVolumes().stream().findFirst().orElseThrow();
+            VolumeInner updatedVolume = anfClient.getVolumes().beginUpdate(
                     config.getResourceGroup(),
-                    config.getAccounts().get(0).getName(),
-                    config.getAccounts().get(0).getCapacityPools().get(0).getName(),
-                    config.getAccounts().get(0).getCapacityPools().get(0).getVolumes().get(0).getName(),
-                    volumePatch
-            ).toBlocking().single();
+                    account.getName(),
+                    pool.getName(),
+                    modelVolume.getName(),
+                    volumePatch).getFinalResult();
 
             Utils.writeSuccessMessage("Volume successfully updated, new size: " + Utils.getTBFromBytes(updatedVolume.usageThreshold()) +
                     "TB, export policy rule count: " + updatedVolume.exportPolicy().rules().size() + ", resource id: " + updatedVolume.id());
@@ -166,7 +181,5 @@ public class Updates
             Utils.writeErrorMessage("An error occurred while updating Volume " + volume.id() + "\nError message: " + e.getMessage());
             throw e;
         }
-
-        return CompletableFuture.completedFuture(null);
     }
 }

@@ -20,7 +20,7 @@ public class Utils
     {
         System.out.println("Azure NetAppFiles Java SDK Samples - Sample project that performs CRUD management operations with Azure NetApp Files SDK");
         System.out.println("----------------------------------------------------------------------------------------------------------------------------");
-        System.out.println("");
+        System.out.println();
     }
 
     /**
