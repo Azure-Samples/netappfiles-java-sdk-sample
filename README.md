@@ -139,7 +139,7 @@ The following table describes all files within this solution:
 1. Change folder to **.\netappfiles-java-sdk-sample**
 1. Make a copy of **_sample_appsettings.json** file, rename it to **appsettings.json** and modify its contents accordingly
 (at minimum all values between **\<\>** must be replaced with real values).
-1. Make sure you have the azureauth.json and its environment variable with the path to it defined (as previously described)
+1. Make sure you have the environment variables previously described defined.
 1. Compile the console application
     ```powershell
     mvn clean compile
